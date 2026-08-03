@@ -5,7 +5,7 @@ import {
   DIETS,
   GOALS,
   OCCASIONS,
-  REGIONS,
+  REGION_GROUPS,
   TIMES,
 } from "../lib/constants.js";
 
@@ -108,8 +108,12 @@ export default function SetupForm({ household, busy, error, onGenerate, onCancel
         <div className="field">
           <label>Cuisine style</label>
           <select value={form.region} onChange={(e) => set("region", e.target.value)}>
-            {REGIONS.map((r) => (
-              <option key={r}>{r}</option>
+            {REGION_GROUPS.map((group) => (
+              <optgroup key={group.label} label={group.label}>
+                {group.options.map((r) => (
+                  <option key={r}>{r}</option>
+                ))}
+              </optgroup>
             ))}
           </select>
         </div>

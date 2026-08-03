@@ -1,14 +1,68 @@
 export const DIETS = ["Veg", "Non-veg", "Vegan", "Jain", "Satvik"];
 
-export const REGIONS = [
-  "North Indian",
-  "South Indian",
-  "Bengali",
-  "Gujarati",
-  "Maharashtrian",
-  "Punjabi",
-  "Mixed / Pan-India",
+// Grouped so the dropdown stays readable. Backend stores region as free text,
+// so this list is purely presentational and can grow freely.
+export const REGION_GROUPS = [
+  {
+    label: "North & West India",
+    options: [
+      "North Indian",
+      "Punjabi",
+      "Rajasthani",
+      "Himachali",
+      "Kashmiri",
+      "Awadhi (UP)",
+    ],
+  },
+  {
+    label: "East & North-East India",
+    options: [
+      "Bihari",
+      "Jharkhandi",
+      "Bengali",
+      "Odia",
+      "Assamese",
+      "North Eastern",
+    ],
+  },
+  {
+    label: "West & Central India",
+    options: ["Gujarati", "Maharashtrian", "Goan", "Malvani"],
+  },
+  {
+    label: "South India",
+    options: [
+      "South Indian",
+      "Tamil",
+      "Andhra / Telugu",
+      "Kerala",
+      "Karnataka / Udupi",
+      "Hyderabadi",
+    ],
+  },
+  {
+    label: "Pan-India",
+    options: ["Mixed / Pan-India"],
+  },
+  {
+    label: "International",
+    options: [
+      "Indo-Chinese",
+      "Chinese",
+      "Thai",
+      "Japanese",
+      "Korean",
+      "Continental",
+      "Italian",
+      "Mexican",
+      "Mediterranean",
+      "Middle Eastern",
+    ],
+  },
 ];
+
+// Flat list of every region value (used for validation / defaults if needed).
+export const REGIONS = REGION_GROUPS.flatMap((g) => g.options);
 
 export const TIMES = [20, 30, 45, 60];
 
