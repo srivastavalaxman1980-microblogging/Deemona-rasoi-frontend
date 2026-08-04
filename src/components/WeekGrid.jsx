@@ -1,6 +1,7 @@
 import { MEAL_LABELS } from "../lib/constants.js";
 import { dayProtein } from "../lib/nutrition.js";
 import DishImage from "./DishImage.jsx";
+import { useLang } from "../lib/i18n.jsx";
 
 function SwapIcon() {
   return (
@@ -14,13 +15,13 @@ function openRecipe(mealId) {
   window.open(`?recipe=${encodeURIComponent(mealId)}`, "_blank", "noopener");
 }
 
-function Meal({ meal, showDivider, busy, onSwap }) {
+function Meal({ meal, showDivider, busy, onSwap, t }) {
   return (
     <>
       {showDivider && <div className="mdiv" />}
       <div className="meal">
         <DishImage dishName={meal.dish} className="meal-thumb" />
-        <div className="mtype">{MEAL_LABELS[meal.mealType] || meal.mealType}</div>
+        <div className="mtype">{t("meal." + meal.mealType) || MEAL_LABELS[meal.mealType] || meal.mealType}</div>
         <div className="mname">
           <span className={"vmark " + (meal.isVeg ? "v" : "n")}>
             <i />
@@ -39,7 +40,7 @@ function Meal({ meal, showDivider, busy, onSwap }) {
           </span>
         </div>
         <button className="recipe-btn" onClick={() => openRecipe(meal.id)}>
-          View recipe
+          {t("menu.viewRecipe")}
         </button>
         <button
           className={"swap" + (busy ? " busy" : "")}
@@ -63,10 +64,11 @@ function Meal({ meal, showDivider, busy, onSwap }) {
 }
 
 export default function WeekGrid({ plan, swappingId, onSwap }) {
+  const { t } = useLang();
   return (
     <>
       <div className="section-h">
-        <h2>{plan.span === "month" ? "This month's menu" : "This week's menu"}</h2>
+        <h2>{plan.span === "month" ? t("menu.monthTitle") : t("menu.weekTitle")}</h2>
         <span className="note">
           Tap a dish's recipe, or hover to swap it &middot;{" "}
           <span style={{ color: "var(--green)" }}>&#9673; veg</span> &middot;{" "}
@@ -89,6 +91,7 @@ export default function WeekGrid({ plan, swappingId, onSwap }) {
                   showDivider={i > 0}
                   busy={swappingId === meal.id}
                   onSwap={onSwap}
+                  t={t}
                 />
               ))}
             </div>

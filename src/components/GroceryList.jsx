@@ -1,6 +1,8 @@
 import { GROCERY_CATEGORIES } from "../lib/constants.js";
+import { useLang } from "../lib/i18n.jsx";
 
 export default function GroceryList({ plan, grocery, busy, householdSize, onBuild }) {
+  const { t } = useLang();
   const perPersonDaily =
     grocery && householdSize
       ? Math.round(grocery.totalInr / plan.days.length / householdSize)
@@ -12,7 +14,7 @@ export default function GroceryList({ plan, grocery, busy, householdSize, onBuil
   return (
     <div className="grocery">
       <div className="section-h">
-        <h2>Grocery list</h2>
+        <h2>{t("grocery.title")}</h2>
         <span className="note">
           Consolidated for the whole {plan.span === "month" ? "month" : "week"}, minus
           what's in your pantry
@@ -29,10 +31,10 @@ export default function GroceryList({ plan, grocery, busy, householdSize, onBuil
             {busy ? (
               <>
                 <span className="spin" />
-                Adding up your cart…
+                {t("grocery.adding")}
               </>
             ) : (
-              "Build grocery list"
+              t("grocery.build")
             )}
           </button>
         </div>

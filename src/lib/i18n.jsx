@@ -1,0 +1,141 @@
+import { createContext, useContext, useState } from "react";
+
+// Voice + recipes work for every language here (handled by Claude + browser
+// speech). The UI dictionary below covers a core set; missing entries fall back
+// to English so the interface never breaks.
+export const LANGUAGES = [
+  { code: "en", name: "English", native: "English", voice: "en-IN" },
+  { code: "hi", name: "Hindi", native: "हिन्दी", voice: "hi-IN" },
+  { code: "bn", name: "Bengali", native: "বাংলা", voice: "bn-IN" },
+  { code: "ta", name: "Tamil", native: "தமிழ்", voice: "ta-IN" },
+  { code: "te", name: "Telugu", native: "తెలుగు", voice: "te-IN" },
+  { code: "mr", name: "Marathi", native: "मराठी", voice: "mr-IN" },
+  { code: "gu", name: "Gujarati", native: "ગુજરાતી", voice: "gu-IN" },
+  { code: "kn", name: "Kannada", native: "ಕನ್ನಡ", voice: "kn-IN" },
+  { code: "ml", name: "Malayalam", native: "മലയാളം", voice: "ml-IN" },
+  { code: "pa", name: "Punjabi", native: "ਪੰਜਾਬੀ", voice: "pa-IN" },
+];
+
+// key -> { en, hi, bn, ta, te, mr, gu }  (others fall back to en)
+// NOTE: non-English strings are AI-generated starting points; have a native
+// speaker review before production.
+const STRINGS = {
+  "app.tagline": {
+    en: "AI Household Nutrition & Kitchen OS",
+    hi: "एआई घरेलू पोषण और रसोई ओएस",
+    bn: "এআই গৃহস্থালি পুষ্টি ও রান্নাঘর ওএস",
+    ta: "AI வீட்டு ஊட்டச்சத்து & சமையலறை OS",
+    te: "AI గృహ పోషణ & వంటగది OS",
+    mr: "एआय घरगुती पोषण आणि स्वयंपाकघर ओएस",
+    gu: "એઆઈ ઘરેલું પોષણ અને રસોડું ઓએસ",
+  },
+  "nav.planner": { en: "Planner", hi: "योजना", bn: "পরিকল্পনা", ta: "திட்டம்", te: "ప్రణాళిక", mr: "नियोजक", gu: "આયોજક" },
+  "nav.pantry": { en: "Pantry", hi: "भंडार", bn: "প্যান্ট্রি", ta: "சரக்கறை", te: "పాంట్రీ", mr: "भांडार", gu: "ભંડાર" },
+
+  "setup.lede": {
+    en: "Plan your family's whole week in one tap.",
+    hi: "एक टैप में अपने परिवार के पूरे हफ्ते की योजना बनाएं।",
+    bn: "এক ট্যাপে আপনার পরিবারের পুরো সপ্তাহের পরিকল্পনা করুন।",
+    ta: "ஒரே தட்டில் உங்கள் குடும்பத்தின் முழு வாரத்தையும் திட்டமிடுங்கள்.",
+    te: "ఒక్క ట్యాప్‌తో మీ కుటుంబ వారమంతటినీ ప్లాన్ చేయండి.",
+    mr: "एका टॅपमध्ये तुमच्या कुटुंबाच्या संपूर्ण आठवड्याचे नियोजन करा.",
+    gu: "એક ટૅપમાં તમારા પરિવારના આખા અઠવાડિયાનું આયોજન કરો.",
+  },
+  "setup.desc": {
+    en: "Tell Rasoi about your household. It builds a balanced, no-repeat weekly menu, then turns it into a costed grocery list.",
+    hi: "रसोई को अपने घर के बारे में बताएं। यह एक संतुलित, बिना दोहराव वाला साप्ताहिक मेनू बनाता है और फिर उसे किराने की सूची में बदल देता है।",
+    bn: "রাসোইকে আপনার পরিবার সম্পর্কে বলুন। এটি একটি ভারসাম্যপূর্ণ সাপ্তাহিক মেনু তৈরি করে এবং তা মুদি তালিকায় পরিণত করে।",
+    ta: "உங்கள் வீட்டைப் பற்றி ரசோய்க்குச் சொல்லுங்கள். இது சமநிலையான வாராந்திர மெனுவை உருவாக்கி மளிகைப் பட்டியலாக மாற்றுகிறது.",
+    te: "మీ ఇంటి గురించి రసోయ్‌కి చెప్పండి. ఇది సమతుల్య వారపు మెనూను తయారుచేసి కిరాణా జాబితాగా మారుస్తుంది.",
+    mr: "रसोईला तुमच्या घराबद्दल सांगा. ते संतुलित साप्ताहिक मेनू तयार करते आणि किराणा यादीत रूपांतरित करते.",
+    gu: "રસોઈને તમારા ઘર વિશે જણાવો. તે સંતુલિત સાપ્તાહિક મેનૂ બનાવે છે અને કરિયાણાની યાદીમાં ફેરવે છે.",
+  },
+  "setup.household": { en: "Household", hi: "परिवार", bn: "পরিবার", ta: "வீட்டார்", te: "కుటుంబం", mr: "कुटुंब", gu: "ઘર" },
+  "setup.adults": { en: "adults", hi: "वयस्क", bn: "প্রাপ্তবয়স্ক", ta: "பெரியவர்கள்", te: "పెద్దలు", mr: "प्रौढ", gu: "પુખ્ત" },
+  "setup.kids": { en: "kids", hi: "बच्चे", bn: "শিশু", ta: "குழந்தைகள்", te: "పిల్లలు", mr: "मुले", gu: "બાળકો" },
+  "setup.budget": { en: "Daily food budget", hi: "दैनिक भोजन बजट", bn: "দৈনিক খাদ্য বাজেট", ta: "தினசரி உணவு பட்ஜெட்", te: "రోజువారీ ఆహార బడ్జెట్", mr: "दैनिक अन्न बजेट", gu: "દૈનિક ખોરાક બજેટ" },
+  "setup.diet": { en: "Diet", hi: "आहार", bn: "খাদ্য", ta: "உணவுமுறை", te: "ఆహారం", mr: "आहार", gu: "આહાર" },
+  "setup.cuisine": { en: "Cuisine style", hi: "व्यंजन शैली", bn: "রন্ধনশৈলী", ta: "உணவு வகை", te: "వంటకం శైలి", mr: "पाककला शैली", gu: "વાનગી શૈલી" },
+  "setup.goal": { en: "Health goal", hi: "स्वास्थ्य लक्ष्य", bn: "স্বাস্থ্য লক্ষ্য", ta: "ஆரோக்கிய இலக்கு", te: "ఆరోగ్య లక్ష్యం", mr: "आरोग्य ध्येय", gu: "આરોગ્ય લક્ષ્ય" },
+  "setup.cooktime": { en: "Max cooking time", hi: "अधिकतम पकाने का समय", bn: "সর্বাধিক রান্নার সময়", ta: "அதிகபட்ச சமையல் நேரம்", te: "గరిష్ఠ వంట సమయం", mr: "कमाल स्वयंपाक वेळ", gu: "મહત્તમ રસોઈ સમય" },
+  "setup.permeal": { en: "per meal", hi: "प्रति भोजन", bn: "প্রতি খাবার", ta: "ஒரு உணவுக்கு", te: "ఒక్కో భోజనానికి", mr: "प्रति जेवण", gu: "દરેક ભોજન" },
+  "setup.thisweek": { en: "This week", hi: "इस हफ्ते", bn: "এই সপ্তাহ", ta: "இந்த வாரம்", te: "ఈ వారం", mr: "या आठवड्यात", gu: "આ અઠવાડિયે" },
+  "setup.allergies": { en: "Allergies to avoid", hi: "बचने वाली एलर्जी", bn: "এড়ানোর অ্যালার্জি", ta: "தவிர்க்க வேண்டிய ஒவ்வாமை", te: "నివారించాల్సిన అలర్జీలు", mr: "टाळायच्या ॲलर्जी", gu: "ટાળવાની એલર્જી" },
+  "setup.planlength": { en: "Plan length", hi: "योजना अवधि", bn: "পরিকল্পনার দৈর্ঘ্য", ta: "திட்ட நீளம்", te: "ప్రణాళిక పొడవు", mr: "योजना कालावधी", gu: "યોજના લંબાઈ" },
+  "setup.week": { en: "1 week", hi: "1 हफ्ता", bn: "১ সপ্তাহ", ta: "1 வாரம்", te: "1 వారం", mr: "1 आठवडा", gu: "1 અઠવાડિયું" },
+  "setup.month": { en: "1 month", hi: "1 महीना", bn: "১ মাস", ta: "1 மாதம்", te: "1 నెల", mr: "1 महिना", gu: "1 મહિનો" },
+  "setup.generate": { en: "Generate weekly plan", hi: "साप्ताहिक योजना बनाएं", bn: "সাপ্তাহিক পরিকল্পনা তৈরি করুন", ta: "வாராந்திர திட்டத்தை உருவாக்கு", te: "వారపు ప్రణాళికను రూపొందించండి", mr: "साप्ताहिक योजना तयार करा", gu: "સાપ્તાહિક યોજના બનાવો" },
+  "setup.generateMonth": { en: "Generate monthly plan", hi: "मासिक योजना बनाएं", bn: "মাসিক পরিকল্পনা তৈরি করুন", ta: "மாதாந்திர திட்டத்தை உருவாக்கு", te: "నెలవారీ ప్రణాళికను రూపొందించండి", mr: "मासिक योजना तयार करा", gu: "માસિક યોજના બનાવો" },
+  "setup.cooking": { en: "Cooking up your week…", hi: "आपका हफ्ता तैयार हो रहा है…", bn: "আপনার সপ্তাহ তৈরি হচ্ছে…", ta: "உங்கள் வாரம் தயாராகிறது…", te: "మీ వారం సిద్ధమవుతోంది…", mr: "तुमचा आठवडा तयार होत आहे…", gu: "તમારું અઠવાડિયું તૈયાર થઈ રહ્યું છે…" },
+  "common.cancel": { en: "Cancel", hi: "रद्द करें", bn: "বাতিল", ta: "ரத்து", te: "రద్దు", mr: "रद्द करा", gu: "રદ કરો" },
+  "common.edit": { en: "Edit", hi: "संपादित करें", bn: "সম্পাদনা", ta: "திருத்து", te: "సవరించు", mr: "संपादित करा", gu: "સંપાદિત કરો" },
+  "common.regenerate": { en: "Regenerate", hi: "फिर से बनाएं", bn: "পুনরায় তৈরি", ta: "மீண்டும் உருவாக்கு", te: "మళ్లీ రూపొందించు", mr: "पुन्हा तयार करा", gu: "ફરી બનાવો" },
+
+  "menu.weekTitle": { en: "This week's menu", hi: "इस हफ्ते का मेनू", bn: "এই সপ্তাহের মেনু", ta: "இந்த வார மெனு", te: "ఈ వారపు మెనూ", mr: "या आठवड्याचा मेनू", gu: "આ અઠવાડિયાનું મેનૂ" },
+  "menu.monthTitle": { en: "This month's menu", hi: "इस महीने का मेनू", bn: "এই মাসের মেনু", ta: "இந்த மாத மெனு", te: "ఈ నెల మెనూ", mr: "या महिन्याचा मेनू", gu: "આ મહિનાનું મેનૂ" },
+  "menu.viewRecipe": { en: "View recipe", hi: "विधि देखें", bn: "রেসিপি দেখুন", ta: "செய்முறையைப் பார்", te: "వంటకం చూడండి", mr: "कृती पहा", gu: "રેસિપી જુઓ" },
+  "meal.breakfast": { en: "Breakfast", hi: "नाश्ता", bn: "সকালের খাবার", ta: "காலை உணவு", te: "అల్పాహారం", mr: "न्याहारी", gu: "નાસ્તો" },
+  "meal.lunch": { en: "Lunch", hi: "दोपहर का भोजन", bn: "দুপুরের খাবার", ta: "மதிய உணவு", te: "మధ్యాహ్న భోజనం", mr: "दुपारचे जेवण", gu: "બપોરનું ભોજન" },
+  "meal.snack": { en: "Snack", hi: "नाश्ता", bn: "জলখাবার", ta: "சிற்றுண்டி", te: "చిరుతిండి", mr: "अल्पोपहार", gu: "નાસ્તો" },
+  "meal.dinner": { en: "Dinner", hi: "रात का खाना", bn: "রাতের খাবার", ta: "இரவு உணவு", te: "రాత్రి భోజనం", mr: "रात्रीचे जेवण", gu: "રાત્રિભોજન" },
+
+  "grocery.title": { en: "Grocery list", hi: "किराना सूची", bn: "মুদি তালিকা", ta: "மளிகை பட்டியல்", te: "కిరాణా జాబితా", mr: "किराणा यादी", gu: "કરિયાણાની યાદી" },
+  "grocery.build": { en: "Build grocery list", hi: "किराना सूची बनाएं", bn: "মুদি তালিকা তৈরি করুন", ta: "மளிகை பட்டியலை உருவாக்கு", te: "కిరాణా జాబితా తయారుచేయి", mr: "किराणा यादी तयार करा", gu: "કરિયાણાની યાદી બનાવો" },
+  "grocery.adding": { en: "Adding up your cart…", hi: "आपकी सूची जोड़ी जा रही है…", bn: "আপনার তালিকা যোগ হচ্ছে…", ta: "உங்கள் பட்டியல் சேர்க்கப்படுகிறது…", te: "మీ జాబితా జోడించబడుతోంది…", mr: "तुमची यादी जोडली जात आहे…", gu: "તમારી યાદી ઉમેરાઈ રહી છે…" },
+
+  "pantry.title": { en: "Your pantry", hi: "आपका भंडार", bn: "আপনার প্যান্ট্রি", ta: "உங்கள் சரக்கறை", te: "మీ పాంట్రీ", mr: "तुमचे भांडार", gu: "તમારું ભંડાર" },
+  "pantry.add": { en: "Add", hi: "जोड़ें", bn: "যোগ করুন", ta: "சேர்", te: "జోడించు", mr: "जोडा", gu: "ઉમેરો" },
+  "pantry.itemPlaceholder": { en: "Item (e.g. Onion, Rice)", hi: "वस्तु (जैसे प्याज, चावल)", bn: "আইটেম (যেমন পেঁয়াজ, চাল)", ta: "பொருள் (எ.கா. வெங்காயம், அரிசி)", te: "వస్తువు (ఉదా. ఉల్లిపాయ, బియ్యం)", mr: "वस्तू (उदा. कांदा, तांदूळ)", gu: "વસ્તુ (દા.ત. ડુંગળી, ચોખા)" },
+
+  "recipe.back": { en: "Back to planner", hi: "योजना पर वापस", bn: "পরিকল্পনায় ফিরুন", ta: "திட்டத்திற்குத் திரும்பு", te: "ప్రణాళికకు తిరిగి", mr: "नियोजकाकडे परत", gu: "આયોજક પર પાછા" },
+  "recipe.ingredients": { en: "Ingredients", hi: "सामग्री", bn: "উপকরণ", ta: "பொருட்கள்", te: "పదార్థాలు", mr: "साहित्य", gu: "સામગ્રી" },
+  "recipe.method": { en: "Method", hi: "विधि", bn: "পদ্ধতি", ta: "செய்முறை", te: "విధానం", mr: "कृती", gu: "રીત" },
+  "recipe.tips": { en: "Tips", hi: "सुझाव", bn: "টিপস", ta: "குறிப்புகள்", te: "చిట్కాలు", mr: "टिपा", gu: "ટિપ્સ" },
+  "recipe.serves": { en: "Serves", hi: "परोसने की मात्रा", bn: "পরিবেশন", ta: "பரிமாறல்", te: "వడ్డనలు", mr: "वाढपे", gu: "પીરસણ" },
+  "recipe.loading": { en: "Cooking up the recipe…", hi: "विधि तैयार हो रही है…", bn: "রেসিপি তৈরি হচ্ছে…", ta: "செய்முறை தயாராகிறது…", te: "వంటకం సిద్ధమవుతోంది…", mr: "कृती तयार होत आहे…", gu: "રેસિપી તૈયાર થઈ રહી છે…" },
+
+  "va.title": { en: "Rasoi Assistant", hi: "रसोई सहायक", bn: "রাসোই সহায়ক", ta: "ரசோய் உதவியாளர்", te: "రసోయ్ సహాయకుడు", mr: "रसोई सहाय्यक", gu: "રસોઈ સહાયક" },
+  "va.placeholder": { en: "Ask or type…", hi: "पूछें या टाइप करें…", bn: "জিজ্ঞাসা বা টাইপ করুন…", ta: "கேளுங்கள் அல்லது தட்டச்சு செய்யுங்கள்…", te: "అడగండి లేదా టైప్ చేయండి…", mr: "विचारा किंवा टाइप करा…", gu: "પૂછો અથવા ટાઇપ કરો…" },
+  "va.listening": { en: "Listening…", hi: "सुन रहा हूँ…", bn: "শুনছি…", ta: "கேட்கிறேன்…", te: "వింటున్నాను…", mr: "ऐकत आहे…", gu: "સાંભળી રહ્યો છું…" },
+  "va.greeting": {
+    en: "Hi! I'm your Rasoi kitchen assistant. Ask me what to cook, ingredient swaps, your grocery spend, or how to make any dish.",
+    hi: "नमस्ते! मैं आपका रसोई सहायक हूँ। मुझसे पूछें कि क्या पकाएं, सामग्री के विकल्प, किराने का खर्च, या कोई भी व्यंजन कैसे बनाएं।",
+    bn: "নমস্কার! আমি আপনার রাসোই রান্নাঘর সহায়ক। কী রান্না করবেন, উপকরণের বিকল্প, মুদি খরচ বা যেকোনো পদ কীভাবে বানাবেন জিজ্ঞাসা করুন।",
+    ta: "வணக்கம்! நான் உங்கள் ரசோய் சமையல் உதவியாளர். என்ன சமைப்பது, மாற்றுப் பொருட்கள், மளிகைச் செலவு அல்லது எந்த உணவை எப்படி சமைப்பது என்று கேளுங்கள்.",
+    te: "నమస్తే! నేను మీ రసోయ్ వంటగది సహాయకుడిని. ఏమి వండాలి, ప్రత్యామ్నాయ పదార్థాలు, కిరాణా ఖర్చు లేదా ఏదైనా వంటకం ఎలా చేయాలో అడగండి.",
+    mr: "नमस्कार! मी तुमचा रसोई सहाय्यक आहे. काय शिजवायचे, पर्यायी साहित्य, किराणा खर्च किंवा कोणतीही पाककृती कशी करायची ते विचारा.",
+    gu: "નમસ્તે! હું તમારો રસોઈ સહાયક છું. શું રાંધવું, વૈકલ્પિક સામગ્રી, કરિયાણા ખર્ચ અથવા કોઈપણ વાનગી કેવી રીતે બનાવવી તે પૂછો.",
+  },
+  "lang.label": { en: "Language", hi: "भाषा", bn: "ভাষা", ta: "மொழி", te: "భాష", mr: "भाषा", gu: "ભાષા" },
+};
+
+const LangCtx = createContext(null);
+
+export function LanguageProvider({ children }) {
+  const [lang, setLangState] = useState(() => {
+    try {
+      return localStorage.getItem("rasoi.lang") || "en";
+    } catch {
+      return "en";
+    }
+  });
+  const setLang = (code) => {
+    try {
+      localStorage.setItem("rasoi.lang", code);
+    } catch {}
+    setLangState(code);
+  };
+  const langObj = LANGUAGES.find((l) => l.code === lang) || LANGUAGES[0];
+  const t = (key) => {
+    const entry = STRINGS[key];
+    if (!entry) return key;
+    return entry[lang] || entry.en || key;
+  };
+  return (
+    <LangCtx.Provider value={{ lang, langObj, setLang, t }}>{children}</LangCtx.Provider>
+  );
+}
+
+export function useLang() {
+  return useContext(LangCtx) || { lang: "en", langObj: LANGUAGES[0], setLang: () => {}, t: (k) => k };
+}

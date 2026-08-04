@@ -2,8 +2,10 @@ import { useEffect, useState } from "react";
 import { api } from "../api/client.js";
 import { DishCard } from "./DishImage.jsx";
 import { dishGlyph } from "../lib/foodGlyph.js";
+import { useLang } from "../lib/i18n.jsx";
 
 export default function RecipeView({ mealId }) {
+  const { t, langObj } = useLang();
   const [recipe, setRecipe] = useState(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
@@ -11,7 +13,7 @@ export default function RecipeView({ mealId }) {
   useEffect(() => {
     let alive = true;
     api
-      .getRecipe(mealId)
+      .getRecipe(mealId, langObj.name)
       .then((r) => {
         if (alive) {
           setRecipe(r);
@@ -27,7 +29,7 @@ export default function RecipeView({ mealId }) {
     return () => {
       alive = false;
     };
-  }, [mealId]);
+  }, [mealId, langObj.name]);
 
   useEffect(() => {
     if (recipe?.dishName) document.title = recipe.dishName + " — Deemona Rasoi";
@@ -36,12 +38,12 @@ export default function RecipeView({ mealId }) {
   return (
     <div className="wrap recipe">
       <a className="rback" href="/">
-        &larr; Back to planner
+        &larr; {t("recipe.back")}
       </a>
 
       {loading && (
         <div className="card empty">
-          <p>Cooking up the recipe&hellip;</p>
+          <p>{t("recipe.loading")}</p>
         </div>
       )}
 
@@ -71,7 +73,7 @@ export default function RecipeView({ mealId }) {
               <div className="rmeta">
                 <span>{recipe.cuisine}</span>
                 <span>&middot;</span>
-                <span>Serves {recipe.servings}</span>
+                <span>{t("recipe.serves")} {recipe.servings}</span>
                 <span>&middot;</span>
                 <span>{recipe.isVeg ? "Vegetarian" : "Non-vegetarian"}</span>
               </div>
@@ -79,7 +81,7 @@ export default function RecipeView({ mealId }) {
           </div>
 
           <div className="rsection">
-            <h3 className="disp">Ingredients</h3>
+            <h3 className="disp">{t("recipe.ingredients")}</h3>
             <div className="ingredients">
               {recipe.ingredients.map((ing, i) => (
                 <div key={i} className="ingredient card">
@@ -100,7 +102,7 @@ export default function RecipeView({ mealId }) {
           </div>
 
           <div className="rsection">
-            <h3 className="disp">Method</h3>
+            <h3 className="disp">{t("recipe.method")}</h3>
             <ol className="steps">
               {recipe.steps.map((step, i) => (
                 <li key={i}>
@@ -113,7 +115,7 @@ export default function RecipeView({ mealId }) {
 
           {recipe.tips?.length > 0 && (
             <div className="rsection">
-              <h3 className="disp">Tips</h3>
+              <h3 className="disp">{t("recipe.tips")}</h3>
               <ul className="tips">
                 {recipe.tips.map((tip, i) => (
                   <li key={i}>{tip}</li>

@@ -10,6 +10,7 @@ import GroceryList from "./components/GroceryList.jsx";
 import PantryPanel from "./components/PantryPanel.jsx";
 import RecipeView from "./components/RecipeView.jsx";
 import VoiceAssistant from "./components/VoiceAssistant.jsx";
+import { useLang } from "./lib/i18n.jsx";
 
 const LS_HOUSEHOLD = "rasoi.householdId";
 const LS_PLAN = "rasoi.planId";
@@ -23,6 +24,7 @@ export default function App() {
       : null;
   if (recipeMealId) return <RecipeView mealId={recipeMealId} />;
 
+  const { t } = useLang();
   const [apiUp, setApiUp] = useState(null); // null = checking
   const [household, setHousehold] = useState(null);
   const [plan, setPlan] = useState(null);
@@ -176,10 +178,10 @@ export default function App() {
       {household && (
         <div className="nav">
           <button className={tab === "planner" ? "on" : ""} onClick={() => setTab("planner")}>
-            Planner
+            {t("nav.planner")}
           </button>
           <button className={tab === "pantry" ? "on" : ""} onClick={() => setTab("pantry")}>
-            Pantry
+            {t("nav.pantry")}
           </button>
         </div>
       )}

@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { api } from "../api/client.js";
 import { GROCERY_CATEGORIES } from "../lib/constants.js";
+import { useLang } from "../lib/i18n.jsx";
 
 export default function PantryPanel({ household }) {
+  const { t } = useLang();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -64,7 +66,7 @@ export default function PantryPanel({ household }) {
   return (
     <>
       <div className="section-h">
-        <h2>Your pantry</h2>
+        <h2>{t("pantry.title")}</h2>
         <span className="note">
           Anything here is subtracted from your grocery list when you build it.
         </span>
@@ -74,7 +76,7 @@ export default function PantryPanel({ household }) {
         <div className="pantry-add">
           <input
             type="text"
-            placeholder="Item (e.g. Onion, Rice, Turmeric)"
+            placeholder={t("pantry.itemPlaceholder")}
             value={form.item}
             onChange={(e) => setForm((p) => ({ ...p, item: e.target.value }))}
             onKeyDown={onKeyDown}
@@ -98,7 +100,7 @@ export default function PantryPanel({ household }) {
             ))}
           </select>
           <button className="btn btn-primary" onClick={add} disabled={adding || !form.item.trim()}>
-            {adding ? <span className="spin" /> : "Add"}
+            {adding ? <span className="spin" /> : t("pantry.add")}
           </button>
         </div>
         {error && (

@@ -1,8 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { api } from "../api/client.js";
-
-const GREETING =
-  "Hi! I'm your Rasoi kitchen assistant. Ask me what to cook, ingredient swaps, your grocery spend, or how to make any dish.";
+import { useLang } from "../lib/i18n.jsx";
 
 const SR =
   typeof window !== "undefined"
@@ -41,9 +39,10 @@ function MuteIcon() {
 }
 
 export default function VoiceAssistant({ householdId, planId }) {
+  const { t, langObj } = useLang();
   const [open, setOpen] = useState(false);
-  const [messages, setMessages] = useState([
-    { role: "assistant", content: GREETING, greeting: true },
+  const [messages, setMessages] = useState(() => [
+    { role: "assistant", content: t("va.greeting"), greeting: true },
   ]);
   const [input, setInput] = useState("");
   const [listening, setListening] = useState(false);
@@ -82,7 +81,7 @@ export default function VoiceAssistant({ householdId, planId }) {
     try {
       TTS.cancel();
       const u = new SpeechSynthesisUtterance(text);
-      u.lang = "en-IN";
+      u.lang = langObj.voice;
       TTS.speak(u);
     } catch {}
   }
@@ -91,6 +90,7 @@ export default function VoiceAssistant({ householdId, planId }) {
     if (!recRef.current || listening) return;
     try {
       TTS?.cancel();
+      try { recRef.current.lang = langObj.voice; } catch {}
       setListening(true);
       recRef.current.start();
     } catch {
@@ -116,7 +116,7 @@ export default function VoiceAssistant({ householdId, planId }) {
         .filter((m) => !m.greeting)
         .slice(-6)
         .map(({ role, content }) => ({ role, content }));
-      const body = { message: msg, history };
+      const body = { message: msg, history, language: langObj.name };
       if (householdId) body.householdId = householdId;
       if (planId) body.planId = planId;
       const { reply } = await api.assistant(body);
@@ -144,7 +144,7 @@ export default function VoiceAssistant({ householdId, planId }) {
       {open && (
         <div className="va-panel" role="dialog" aria-label="Rasoi assistant">
           <div className="va-head">
-            <div className="va-title">Rasoi Assistant</div>
+            <div className="va-title">{t("va.title")}</div>
             <div className="va-head-actions">
               {TTS && (
                 <button
@@ -202,7 +202,7 @@ export default function VoiceAssistant({ householdId, planId }) {
             )}
             <input
               type="text"
-              placeholder={listening ? "Listening…" : "Ask or type…"}
+              placeholder={listening ? t("va.listening") : t("va.placeholder")}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => {

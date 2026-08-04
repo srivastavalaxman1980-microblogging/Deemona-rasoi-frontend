@@ -1,4 +1,7 @@
+import { useLang } from "../lib/i18n.jsx";
+
 export default function SummaryBar({ household, plan, busy, onEdit, onRegenerate }) {
+  const { t } = useLang();
   const c = plan.constraints || household || {};
   return (
     <div className="card sumbar">
@@ -22,7 +25,7 @@ export default function SummaryBar({ household, plan, busy, onEdit, onRegenerate
       </div>
       <div style={{ display: "flex", gap: 10 }}>
         <button className="btn btn-ghost" onClick={onEdit}>
-          Edit
+          {t("common.edit")}
         </button>
         <button className="btn btn-primary" onClick={onRegenerate} disabled={busy}>
           {busy ? (
@@ -31,7 +34,7 @@ export default function SummaryBar({ household, plan, busy, onEdit, onRegenerate
               Regenerating…
             </>
           ) : (
-            "Regenerate"
+            t("common.regenerate")
           )}
         </button>
       </div>

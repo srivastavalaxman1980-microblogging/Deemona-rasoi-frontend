@@ -8,8 +8,10 @@ import {
   REGION_GROUPS,
   TIMES,
 } from "../lib/constants.js";
+import { useLang } from "../lib/i18n.jsx";
 
 export default function SetupForm({ household, busy, error, onGenerate, onCancel }) {
+  const { t } = useLang();
   const initial = household || DEFAULT_HOUSEHOLD;
   const [form, setForm] = useState({
     name: initial.name,
@@ -42,24 +44,20 @@ export default function SetupForm({ household, busy, error, onGenerate, onCancel
   return (
     <div className="card setup">
       <div className="disp lede">
-        Plan your family's <em>whole week</em> in one tap.
+        {t("setup.lede")}
       </div>
-      <div className="desc">
-        Tell Rasoi about your household. It builds a balanced, no-repeat weekly
-        menu &mdash; breakfast, lunch, snack and dinner &mdash; then turns it into a
-        costed grocery list.
-      </div>
+      <div className="desc">{t("setup.desc")}</div>
 
       <div className="grid">
         <div className="field">
-          <label>Household</label>
+          <label>{t("setup.household")}</label>
           <div className="steppers">
             <div className="stepper">
               <button onClick={() => set("adults", Math.max(1, form.adults - 1))} aria-label="Fewer adults">
                 −
               </button>
               <span className="val">{form.adults}</span>
-              <span className="lbl">adults</span>
+              <span className="lbl">{t("setup.adults")}</span>
               <button onClick={() => set("adults", Math.min(12, form.adults + 1))} aria-label="More adults">
                 +
               </button>
@@ -69,7 +67,7 @@ export default function SetupForm({ household, busy, error, onGenerate, onCancel
                 −
               </button>
               <span className="val">{form.kids}</span>
-              <span className="lbl">kids</span>
+              <span className="lbl">{t("setup.kids")}</span>
               <button onClick={() => set("kids", Math.min(12, form.kids + 1))} aria-label="More kids">
                 +
               </button>
@@ -79,7 +77,7 @@ export default function SetupForm({ household, busy, error, onGenerate, onCancel
 
         <div className="field">
           <label>
-            Daily food budget <span className="hint">(₹)</span>
+            {t("setup.budget")} <span className="hint">(₹)</span>
           </label>
           <input
             type="number"
@@ -91,7 +89,7 @@ export default function SetupForm({ household, busy, error, onGenerate, onCancel
         </div>
 
         <div className="field">
-          <label>Diet</label>
+          <label>{t("setup.diet")}</label>
           <div className="chips">
             {DIETS.map((d) => (
               <button
@@ -106,7 +104,7 @@ export default function SetupForm({ household, busy, error, onGenerate, onCancel
         </div>
 
         <div className="field">
-          <label>Cuisine style</label>
+          <label>{t("setup.cuisine")}</label>
           <select value={form.region} onChange={(e) => set("region", e.target.value)}>
             {REGION_GROUPS.map((group) => (
               <optgroup key={group.label} label={group.label}>
@@ -119,7 +117,7 @@ export default function SetupForm({ household, busy, error, onGenerate, onCancel
         </div>
 
         <div className="field">
-          <label>Health goal</label>
+          <label>{t("setup.goal")}</label>
           <select value={form.goal} onChange={(e) => set("goal", e.target.value)}>
             {GOALS.map((g) => (
               <option key={g}>{g}</option>
@@ -129,7 +127,7 @@ export default function SetupForm({ household, busy, error, onGenerate, onCancel
 
         <div className="field">
           <label>
-            Max cooking time <span className="hint">per meal</span>
+            {t("setup.cooktime")} <span className="hint">{t("setup.permeal")}</span>
           </label>
           <div className="chips">
             {TIMES.map((t) => (
@@ -146,7 +144,7 @@ export default function SetupForm({ household, busy, error, onGenerate, onCancel
 
         <div className="field">
           <label>
-            This week <span className="hint">(context)</span>
+            {t("setup.thisweek")}
           </label>
           <select value={occasion} onChange={(e) => setOccasion(e.target.value)}>
             {OCCASIONS.map((o) => (
@@ -156,7 +154,7 @@ export default function SetupForm({ household, busy, error, onGenerate, onCancel
         </div>
 
         <div className="field">
-          <label>Allergies to avoid</label>
+          <label>{t("setup.allergies")}</label>
           <div className="chips">
             {ALLERGENS.map((a) => (
               <button
@@ -171,13 +169,13 @@ export default function SetupForm({ household, busy, error, onGenerate, onCancel
         </div>
 
         <div className="field">
-          <label>Plan length</label>
+          <label>{t("setup.planlength")}</label>
           <div className="segmented" role="group" aria-label="Plan length">
             <button className={span === "week" ? "on" : ""} onClick={() => setSpan("week")}>
-              1 week
+              {t("setup.week")}
             </button>
             <button className={span === "month" ? "on" : ""} onClick={() => setSpan("month")}>
-              1 month
+              {t("setup.month")}
             </button>
           </div>
         </div>
@@ -188,15 +186,15 @@ export default function SetupForm({ household, busy, error, onGenerate, onCancel
           {busy ? (
             <>
               <span className="spin" />
-              {span === "month" ? "Cooking up your month…" : "Cooking up your week…"}
+              t("setup.cooking")
             </>
           ) : (
-            <>Generate {span === "month" ? "monthly" : "weekly"} plan</>
+            <>{span === "month" ? t("setup.generateMonth") : t("setup.generate")}</>
           )}
         </button>
         {household && onCancel && (
           <button className="btn btn-ghost" onClick={onCancel}>
-            Cancel
+            {t("common.cancel")}
           </button>
         )}
         <span style={{ fontSize: 12, color: "var(--muted)" }}>

@@ -69,7 +69,8 @@ export const api = {
   deletePantryItem: (id) => request(`/api/pantry/${id}`, { method: "DELETE" }),
 
   getDishImage: (name) => request(`/api/dish-image?name=${encodeURIComponent(name)}`),
-  getRecipe: (mealId) => request(`/api/meals/${mealId}/recipe`),
+  getRecipe: (mealId, lang) =>
+    request(`/api/meals/${mealId}/recipe${lang ? `?lang=${encodeURIComponent(lang)}` : ""}`),
 
   assistant: (body) =>
     request("/api/assistant", { method: "POST", body: JSON.stringify(body) }),

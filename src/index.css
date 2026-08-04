@@ -1145,3 +1145,46 @@ img.dishimg {
   font-size: 11.5px;
   color: var(--muted);
 }
+
+/* ---- language selector ---- */
+.top-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.lang-select {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 5px 10px 5px 9px;
+  color: var(--muted);
+  cursor: pointer;
+}
+.lang-select svg {
+  width: 15px;
+  height: 15px;
+  flex: 0 0 auto;
+}
+.lang-select select {
+  border: none;
+  background: transparent;
+  font: inherit;
+  font-size: 13px;
+  color: var(--ink);
+  padding: 0;
+  cursor: pointer;
+  outline: none;
+  width: auto;
+}
+.lang-select select:focus {
+  outline: none;
+  border: none;
+}
+@media (max-width: 520px) {
+  .maker {
+    display: none;
+  }
+}
