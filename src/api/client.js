@@ -70,4 +70,7 @@ export const api = {
 
   getDishImage: (name) => request(`/api/dish-image?name=${encodeURIComponent(name)}`),
   getRecipe: (mealId) => request(`/api/meals/${mealId}/recipe`),
+
+  assistant: (body) =>
+    request("/api/assistant", { method: "POST", body: JSON.stringify(body) }),
 };

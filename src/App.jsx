@@ -9,6 +9,7 @@ import WeekGrid from "./components/WeekGrid.jsx";
 import GroceryList from "./components/GroceryList.jsx";
 import PantryPanel from "./components/PantryPanel.jsx";
 import RecipeView from "./components/RecipeView.jsx";
+import VoiceAssistant from "./components/VoiceAssistant.jsx";
 
 const LS_HOUSEHOLD = "rasoi.householdId";
 const LS_PLAN = "rasoi.planId";
@@ -239,6 +240,8 @@ export default function App() {
           Pexels
         </a>
       </div>
+
+      <VoiceAssistant householdId={household?.id} planId={plan?.id} />
     </div>
   );
 }
