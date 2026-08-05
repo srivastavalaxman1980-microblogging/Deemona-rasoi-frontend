@@ -26,6 +26,11 @@ export default function SetupForm({ household, busy, error, onGenerate, onCancel
   });
   const [occasion, setOccasion] = useState("Regular week");
   const [span, setSpan] = useState("week");
+  const todayISO = () => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  };
+  const [startDate, setStartDate] = useState(todayISO());
 
   const set = (k, v) => setForm((p) => ({ ...p, [k]: v }));
   const toggleAllergy = (a) =>
@@ -39,7 +44,7 @@ export default function SetupForm({ household, busy, error, onGenerate, onCancel
   const proteinTarget =
     form.adults * (form.goal === "Muscle gain" ? 68 : 55) + form.kids * 32;
 
-  const submit = () => onGenerate(form, { occasion, span });
+  const submit = () => onGenerate(form, { occasion, span, startDate });
 
   return (
     <div className="card setup">
@@ -166,6 +171,15 @@ export default function SetupForm({ household, busy, error, onGenerate, onCancel
               </button>
             ))}
           </div>
+        </div>
+
+        <div className="field">
+          <label>{t("setup.startdate")}</label>
+          <input
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value || todayISO())}
+          />
         </div>
 
         <div className="field">

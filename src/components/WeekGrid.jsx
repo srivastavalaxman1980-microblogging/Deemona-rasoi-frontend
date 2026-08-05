@@ -64,12 +64,33 @@ function Meal({ meal, showDivider, busy, onSwap, t }) {
 }
 
 export default function WeekGrid({ plan, swappingId, onSwap }) {
-  const { t } = useLang();
+  const { t, langObj } = useLang();
+
+  const dateFor = (dayIndex) => {
+    if (!plan.weekStart) return null;
+    const d = new Date(plan.weekStart + "T00:00:00");
+    d.setDate(d.getDate() + dayIndex);
+    return d;
+  };
+  const fmt = (d, opts) => {
+    try {
+      return new Intl.DateTimeFormat(langObj.voice, opts).format(d);
+    } catch {
+      return d.toDateString();
+    }
+  };
+  const first = dateFor(0);
+  const last = dateFor((plan.days?.length || 1) - 1);
+  const range =
+    first && last
+      ? `${fmt(first, { day: "numeric", month: "short" })} \u2013 ${fmt(last, { day: "numeric", month: "short" })}`
+      : null;
   return (
     <>
       <div className="section-h">
         <h2>{plan.span === "month" ? t("menu.monthTitle") : t("menu.weekTitle")}</h2>
         <span className="note">
+          {range && <span className="menu-range">{range}</span>}
           Tap a dish's recipe, or hover to swap it &middot;{" "}
           <span style={{ color: "var(--green)" }}>&#9673; veg</span> &middot;{" "}
           <span style={{ color: "var(--chili)" }}>&#9650; non-veg</span>
@@ -80,7 +101,12 @@ export default function WeekGrid({ plan, swappingId, onSwap }) {
         {plan.days.map((day) => (
           <div key={day.id} className="card day">
             <div className="dh">
-              <span className="dn">{day.label}</span>
+              <span className="dn">
+                {(() => {
+                  const d = dateFor(day.dayIndex);
+                  return d ? fmt(d, { weekday: "short", day: "numeric", month: "short" }) : day.label;
+                })()}
+              </span>
               <span className="dp">{dayProtein(day)}g protein</span>
             </div>
             <div className="meals">

@@ -110,7 +110,11 @@ export default function App() {
       let hh = household;
       hh = hh ? await api.updateHousehold(hh.id, form) : await api.createHousehold(form);
       setHousehold(hh);
-      const full = await api.generatePlan(hh.id, { span: opts.span, occasion: opts.occasion });
+      const full = await api.generatePlan(hh.id, {
+        span: opts.span,
+        occasion: opts.occasion,
+        startDate: opts.startDate,
+      });
       setPlan(full);
       setGrocery(full.grocery || null);
       setLastOpts(opts);
