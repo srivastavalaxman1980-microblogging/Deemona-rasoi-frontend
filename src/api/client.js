@@ -1,19 +1,37 @@
 const BASE = import.meta.env.VITE_API_URL || "http://localhost:4000";
-const USER_ID =
-  import.meta.env.VITE_DEV_USER_ID || "00000000-0000-0000-0000-000000000001";
+const TOKEN_KEY = "rasoi.token";
+
+export function getToken() {
+  try {
+    return localStorage.getItem(TOKEN_KEY) || "";
+  } catch {
+    return "";
+  }
+}
+export function setToken(t) {
+  try {
+    localStorage.setItem(TOKEN_KEY, t);
+  } catch {}
+}
+export function clearToken() {
+  try {
+    localStorage.removeItem(TOKEN_KEY);
+  } catch {}
+}
 
 async function request(path, options = {}) {
+  const token = getToken();
   let res;
   try {
     res = await fetch(BASE + path, {
       ...options,
       headers: {
         "Content-Type": "application/json",
-        "x-user-id": USER_ID,
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...(options.headers || {}),
       },
     });
-  } catch (networkErr) {
+  } catch {
     throw new Error(`Can't reach the API at ${BASE}. Is the backend running?`);
   }
 
@@ -25,7 +43,9 @@ async function request(path, options = {}) {
     } catch {
       /* non-JSON error body */
     }
-    throw new Error(message);
+    const err = new Error(message);
+    err.status = res.status;
+    throw err;
   }
 
   if (res.status === 204) return null;
@@ -37,12 +57,20 @@ export const api = {
 
   health: () => request("/health"),
 
+  // ---- auth ----
+  register: (body) => request("/api/auth/register", { method: "POST", body: JSON.stringify(body) }),
+  login: (body) => request("/api/auth/login", { method: "POST", body: JSON.stringify(body) }),
+  me: () => request("/api/auth/me"),
+
+  // ---- households ----
+  listHouseholds: () => request("/api/households"),
   createHousehold: (body) =>
     request("/api/households", { method: "POST", body: JSON.stringify(body) }),
   getHousehold: (id) => request(`/api/households/${id}`),
   updateHousehold: (id, body) =>
     request(`/api/households/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
 
+  // ---- plans ----
   listPlans: (householdId) => request(`/api/households/${householdId}/meal-plans`),
   generatePlan: (householdId, body) =>
     request(`/api/households/${householdId}/meal-plans`, {

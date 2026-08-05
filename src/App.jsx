@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { api } from "./api/client.js";
+import { api, clearToken, getToken } from "./api/client.js";
 import { computeStats } from "./lib/nutrition.js";
 import Header from "./components/Header.jsx";
 import SetupForm from "./components/SetupForm.jsx";
@@ -10,14 +10,11 @@ import GroceryList from "./components/GroceryList.jsx";
 import PantryPanel from "./components/PantryPanel.jsx";
 import RecipeView from "./components/RecipeView.jsx";
 import VoiceAssistant from "./components/VoiceAssistant.jsx";
+import AuthPage from "./components/AuthPage.jsx";
 import { useLang } from "./lib/i18n.jsx";
 
-const LS_HOUSEHOLD = "rasoi.householdId";
-const LS_PLAN = "rasoi.planId";
-
 export default function App() {
-  // Recipe pages open in a new tab as ?recipe=<mealId>. This works on a static
-  // host without server routing, and stays a standalone view.
+  // Recipe pages open in a new tab as ?recipe=<mealId>.
   const recipeMealId =
     typeof window !== "undefined"
       ? new URLSearchParams(window.location.search).get("recipe")
@@ -25,20 +22,44 @@ export default function App() {
   if (recipeMealId) return <RecipeView mealId={recipeMealId} />;
 
   const { t } = useLang();
-  const [apiUp, setApiUp] = useState(null); // null = checking
+  const [apiUp, setApiUp] = useState(null);
+  const [user, setUser] = useState(null);
+  const [authReady, setAuthReady] = useState(false);
+
   const [household, setHousehold] = useState(null);
   const [plan, setPlan] = useState(null);
   const [grocery, setGrocery] = useState(null);
-  const [phase, setPhase] = useState("setup"); // "setup" | "planner"
+  const [phase, setPhase] = useState("setup");
   const [lastOpts, setLastOpts] = useState({ occasion: "Regular week", span: "week" });
-  const [tab, setTab] = useState("planner"); // "planner" | "pantry"
+  const [tab, setTab] = useState("planner");
 
   const [genBusy, setGenBusy] = useState(false);
   const [groceryBusy, setGroceryBusy] = useState(false);
   const [swappingId, setSwappingId] = useState(null);
   const [error, setError] = useState("");
 
-  // On load: check API health, then restore any saved household + plan.
+  // Restore the signed-in user's most recent household + plan from the server.
+  async function bootstrap() {
+    try {
+      const households = await api.listHouseholds();
+      if (households && households.length) {
+        const hh = households[0];
+        setHousehold(hh);
+        const plans = await api.listPlans(hh.id);
+        if (plans && plans.length) {
+          const full = await api.getPlan(plans[0].id);
+          setPlan(full);
+          setGrocery(full.grocery || null);
+          setLastOpts({ occasion: full.occasion || "Regular week", span: full.span || "week" });
+          setPhase("planner");
+        }
+      }
+    } catch {
+      /* first-time user or transient error; start fresh */
+    }
+  }
+
+  // On load: check API health, then validate any saved login token.
   useEffect(() => {
     (async () => {
       try {
@@ -46,29 +67,19 @@ export default function App() {
         setApiUp(true);
       } catch {
         setApiUp(false);
+        setAuthReady(true);
         return;
       }
-
-      const hid = localStorage.getItem(LS_HOUSEHOLD);
-      const pid = localStorage.getItem(LS_PLAN);
-      if (hid) {
+      if (getToken()) {
         try {
-          setHousehold(await api.getHousehold(hid));
+          const u = await api.me();
+          setUser(u);
+          await bootstrap();
         } catch {
-          localStorage.removeItem(LS_HOUSEHOLD);
+          clearToken();
         }
       }
-      if (pid) {
-        try {
-          const full = await api.getPlan(pid);
-          setPlan(full);
-          setGrocery(full.grocery || null);
-          setLastOpts({ occasion: full.occasion || "Regular week", span: full.span || "week" });
-          setPhase("planner");
-        } catch {
-          localStorage.removeItem(LS_PLAN);
-        }
-      }
+      setAuthReady(true);
     })();
   }, []);
 
@@ -77,6 +88,21 @@ export default function App() {
     : 0;
   const stats = useMemo(() => computeStats(plan), [plan]);
 
+  async function handleAuth(u) {
+    setUser(u);
+    await bootstrap();
+  }
+
+  function handleLogout() {
+    clearToken();
+    setUser(null);
+    setHousehold(null);
+    setPlan(null);
+    setGrocery(null);
+    setPhase("setup");
+    setTab("planner");
+  }
+
   async function handleGenerate(form, opts) {
     setError("");
     setGenBusy(true);
@@ -84,16 +110,10 @@ export default function App() {
       let hh = household;
       hh = hh ? await api.updateHousehold(hh.id, form) : await api.createHousehold(form);
       setHousehold(hh);
-      localStorage.setItem(LS_HOUSEHOLD, hh.id);
-
-      const full = await api.generatePlan(hh.id, {
-        span: opts.span,
-        occasion: opts.occasion,
-      });
+      const full = await api.generatePlan(hh.id, { span: opts.span, occasion: opts.occasion });
       setPlan(full);
       setGrocery(full.grocery || null);
       setLastOpts(opts);
-      localStorage.setItem(LS_PLAN, full.id);
       setPhase("planner");
     } catch (e) {
       setError(e.message);
@@ -110,7 +130,6 @@ export default function App() {
       const full = await api.generatePlan(household.id, lastOpts);
       setPlan(full);
       setGrocery(full.grocery || null);
-      localStorage.setItem(LS_PLAN, full.id);
     } catch (e) {
       setError(e.message);
     } finally {
@@ -154,7 +173,7 @@ export default function App() {
           ),
         })),
       }));
-      setGrocery(null); // grocery list is now stale
+      setGrocery(null);
     } catch (e) {
       setError(e.message);
     } finally {
@@ -162,11 +181,23 @@ export default function App() {
     }
   }
 
+  // ---- gating ----
+  if (!authReady) {
+    return (
+      <div className="wrap">
+        <div className="card empty" style={{ marginTop: 60 }}>
+          <p>Loading…</p>
+        </div>
+      </div>
+    );
+  }
+  if (!user) return <AuthPage onAuth={handleAuth} />;
+
   const showSetup = phase === "setup" || !plan;
 
   return (
     <div className="wrap">
-      <Header />
+      <Header user={user} onLogout={handleLogout} />
 
       {apiUp === false && (
         <div className="banner">

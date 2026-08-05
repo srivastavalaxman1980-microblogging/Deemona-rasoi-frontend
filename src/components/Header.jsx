@@ -1,6 +1,6 @@
 import { LANGUAGES, useLang } from "../lib/i18n.jsx";
 
-export default function Header() {
+export default function Header({ user, onLogout }) {
   const { lang, setLang, t } = useLang();
   return (
     <div className="top">
@@ -22,6 +22,7 @@ export default function Header() {
           <div className="sub">{t("app.tagline")}</div>
         </div>
       </div>
+
       <div className="top-right">
         <label className="lang-select" title={t("lang.label")}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
@@ -36,7 +37,15 @@ export default function Header() {
             ))}
           </select>
         </label>
-        <div className="maker">Deemona&nbsp;Technologies</div>
+
+        {user && (
+          <button className="logout-btn" onClick={onLogout} title={t("auth.logout")}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" />
+            </svg>
+            <span>{t("auth.logout")}</span>
+          </button>
+        )}
       </div>
     </div>
   );
