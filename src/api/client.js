@@ -60,6 +60,8 @@ export const api = {
   // ---- auth ----
   register: (body) => request("/api/auth/register", { method: "POST", body: JSON.stringify(body) }),
   login: (body) => request("/api/auth/login", { method: "POST", body: JSON.stringify(body) }),
+  googleLogin: (idToken) =>
+    request("/api/auth/google", { method: "POST", body: JSON.stringify({ idToken }) }),
   me: () => request("/api/auth/me"),
 
   // ---- households ----

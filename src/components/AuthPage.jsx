@@ -1,40 +1,78 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api, setToken } from "../api/client.js";
 import { LANGUAGES, useLang } from "../lib/i18n.jsx";
 
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
+
 export default function AuthPage({ onAuth }) {
   const { t, lang, setLang } = useLang();
-  const [mode, setMode] = useState("login"); // "login" | "signup"
+  const [mode, setMode] = useState("login");
   const [form, setForm] = useState({ name: "", email: "", password: "" });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const googleBtnRef = useRef(null);
 
   const set = (k, v) => setForm((p) => ({ ...p, [k]: v }));
 
-  async function submit() {
+  async function finish(promise) {
     setError("");
-    if (!form.email.trim() || !form.password || (mode === "signup" && !form.name.trim())) {
-      setError("Please fill in all fields.");
-      return;
-    }
     setBusy(true);
     try {
-      const result =
-        mode === "signup"
-          ? await api.register({ name: form.name, email: form.email, password: form.password })
-          : await api.login({ email: form.email, password: form.password });
+      const result = await promise;
       setToken(result.token);
       onAuth(result.user);
     } catch (e) {
       setError(e.message || "Something went wrong. Please try again.");
-    } finally {
       setBusy(false);
     }
+  }
+
+  async function submit() {
+    if (!form.email.trim() || !form.password || (mode === "signup" && !form.name.trim())) {
+      setError("Please fill in all fields.");
+      return;
+    }
+    finish(
+      mode === "signup"
+        ? api.register({ name: form.name, email: form.email, password: form.password })
+        : api.login({ email: form.email, password: form.password })
+    );
   }
 
   const onKeyDown = (e) => {
     if (e.key === "Enter") submit();
   };
+
+  // Render the Google Sign-In button once the GIS script is ready.
+  useEffect(() => {
+    if (!GOOGLE_CLIENT_ID) return;
+    let tries = 0;
+    const timer = setInterval(() => {
+      const gid = window.google?.accounts?.id;
+      if (gid) {
+        clearInterval(timer);
+        gid.initialize({
+          client_id: GOOGLE_CLIENT_ID,
+          callback: (resp) => {
+            if (resp?.credential) finish(api.googleLogin(resp.credential));
+          },
+        });
+        if (googleBtnRef.current) {
+          gid.renderButton(googleBtnRef.current, {
+            theme: "outline",
+            size: "large",
+            width: 360,
+            text: "continue_with",
+            shape: "pill",
+          });
+        }
+      } else if (++tries > 50) {
+        clearInterval(timer);
+      }
+    }, 100);
+    return () => clearInterval(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div className="auth-wrap">
@@ -65,6 +103,13 @@ export default function AuthPage({ onAuth }) {
         <h2 className="disp auth-title">
           {mode === "signup" ? t("auth.signupTitle") : t("auth.loginTitle")}
         </h2>
+
+        {GOOGLE_CLIENT_ID && (
+          <>
+            <div className="google-wrap" ref={googleBtnRef} />
+            <div className="auth-or"><span>or</span></div>
+          </>
+        )}
 
         <div className="auth-fields">
           {mode === "signup" && (

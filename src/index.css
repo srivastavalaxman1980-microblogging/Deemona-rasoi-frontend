@@ -1310,3 +1310,29 @@ img.dishimg {
     display: none;
   }
 }
+
+/* ---- google sign-in ---- */
+.google-wrap {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 4px;
+  min-height: 40px;
+}
+.auth-or {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  color: var(--muted);
+  font-size: 12px;
+  margin: 14px 0 4px;
+}
+.auth-or::before,
+.auth-or::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+.auth-or span {
+  padding: 0 12px;
+}
