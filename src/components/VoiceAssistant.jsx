@@ -51,26 +51,31 @@ export default function VoiceAssistant({ householdId, planId }) {
   const recRef = useRef(null);
   const scrollRef = useRef(null);
 
+  // Re-create the SpeechRecognition object whenever the language changes so
+  // the mic correctly targets the active language (not just en-IN).
   useEffect(() => {
     if (!SR) return;
+    // Clean up any existing instance before creating a fresh one.
+    try { recRef.current?.abort(); } catch {}
+
     const r = new SR();
-    r.lang = "en-IN";
+    // KEY FIX: use the active language code, not hardcoded "en-IN".
+    r.lang = langObj.voice;
     r.interimResults = false;
     r.maxAlternatives = 1;
     r.onresult = (e) => {
-      const t = e.results?.[0]?.[0]?.transcript || "";
-      if (t) send(t);
+      const text = e.results?.[0]?.[0]?.transcript || "";
+      if (text) send(text);
     };
     r.onend = () => setListening(false);
     r.onerror = () => setListening(false);
     recRef.current = r;
+
     return () => {
-      try {
-        r.abort();
-      } catch {}
+      try { r.abort(); } catch {}
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [langObj.voice]); // re-create when language changes
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -90,17 +95,17 @@ export default function VoiceAssistant({ householdId, planId }) {
     if (!recRef.current || listening) return;
     try {
       TTS?.cancel();
-      try { recRef.current.lang = langObj.voice; } catch {}
+      // Re-set lang just before start as a belt-and-suspenders measure.
+      recRef.current.lang = langObj.voice;
       setListening(true);
       recRef.current.start();
     } catch {
       setListening(false);
     }
   }
+
   function stopListening() {
-    try {
-      recRef.current?.stop();
-    } catch {}
+    try { recRef.current?.stop(); } catch {}
     setListening(false);
   }
 
@@ -149,12 +154,7 @@ export default function VoiceAssistant({ householdId, planId }) {
               {TTS && (
                 <button
                   className="va-icon"
-                  onClick={() =>
-                    setSpeak((s) => {
-                      if (s) TTS.cancel();
-                      return !s;
-                    })
-                  }
+                  onClick={() => setSpeak((s) => { if (s) TTS.cancel(); return !s; })}
                   title={speak ? "Mute voice" : "Unmute voice"}
                   aria-label="Toggle voice"
                 >
@@ -163,10 +163,7 @@ export default function VoiceAssistant({ householdId, planId }) {
               )}
               <button
                 className="va-icon va-close"
-                onClick={() => {
-                  TTS?.cancel();
-                  setOpen(false);
-                }}
+                onClick={() => { TTS?.cancel(); setOpen(false); }}
                 aria-label="Close assistant"
               >
                 &times;
@@ -182,9 +179,7 @@ export default function VoiceAssistant({ householdId, planId }) {
             ))}
             {thinking && (
               <div className="va-msg assistant va-typing">
-                <span />
-                <span />
-                <span />
+                <span /><span /><span />
               </div>
             )}
           </div>
@@ -194,8 +189,8 @@ export default function VoiceAssistant({ householdId, planId }) {
               <button
                 className={"va-mic" + (listening ? " on" : "")}
                 onClick={listening ? stopListening : startListening}
-                title={listening ? "Stop" : "Speak"}
-                aria-label={listening ? "Stop listening" : "Start speaking"}
+                title={listening ? t("va.listening") : langObj.native + " mic"}
+                aria-label={listening ? "Stop listening" : "Speak in " + langObj.name}
               >
                 <MicIcon />
               </button>
@@ -205,9 +200,7 @@ export default function VoiceAssistant({ householdId, planId }) {
               placeholder={listening ? t("va.listening") : t("va.placeholder")}
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") send();
-              }}
+              onKeyDown={(e) => { if (e.key === "Enter") send(); }}
             />
             <button
               className="va-send"
@@ -220,7 +213,14 @@ export default function VoiceAssistant({ householdId, planId }) {
           </div>
 
           {!SR && (
-            <div className="va-note">Voice input needs Chrome or Edge — you can type on any browser.</div>
+            <div className="va-note">
+              Voice input needs Chrome or Edge. You can type on any browser.
+            </div>
+          )}
+          {SR && langObj.code !== "en" && (
+            <div className="va-note">
+              Mic listening in {langObj.native}. If mis-heard, speak slowly or switch to typing.
+            </div>
           )}
         </div>
       )}
