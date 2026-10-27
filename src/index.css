@@ -1349,3 +1349,5 @@ img.dishimg {
   padding: 2px 9px;
   margin-right: 10px;
 }
+
+.va-note.va-err { color: #b3261e; }

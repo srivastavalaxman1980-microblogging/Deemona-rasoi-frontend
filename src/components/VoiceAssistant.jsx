@@ -50,6 +50,28 @@ export default function VoiceAssistant({ householdId, planId }) {
   const [speak, setSpeak] = useState(true);
   const recRef = useRef(null);
   const scrollRef = useRef(null);
+  const sendRef = useRef(null);
+  const [micError, setMicError] = useState("");
+  const [voices, setVoices] = useState([]);
+
+  useEffect(() => {
+    if (!TTS) return;
+    const load = () => setVoices(TTS.getVoices() || []);
+    load();
+    TTS.addEventListener?.("voiceschanged", load);
+    return () => TTS.removeEventListener?.("voiceschanged", load);
+  }, []);
+
+  function pickVoice() {
+    const want = (langObj.voice || "").toLowerCase();
+    const base = want.split("-")[0];
+    return (
+      voices.find((v) => v.lang.toLowerCase().replace("_", "-") === want) ||
+      voices.find((v) => v.lang.toLowerCase().startsWith(base)) ||
+      null
+    );
+  }
+  const hasVoice = langObj.code === "en" || !!pickVoice();
 
   // Re-create the SpeechRecognition object whenever the language changes so
   // the mic correctly targets the active language (not just en-IN).
@@ -65,10 +87,21 @@ export default function VoiceAssistant({ householdId, planId }) {
     r.maxAlternatives = 1;
     r.onresult = (e) => {
       const text = e.results?.[0]?.[0]?.transcript || "";
-      if (text) send(text);
+      if (text) sendRef.current?.(text);
     };
     r.onend = () => setListening(false);
-    r.onerror = () => setListening(false);
+    r.onerror = (e) => {
+      setListening(false);
+      const map = {
+        "not-allowed": "Microphone is blocked. Allow mic access for this site in the browser address bar.",
+        "service-not-allowed": "Microphone is blocked. Allow mic access for this site in the browser address bar.",
+        "language-not-supported": "This browser/device cannot recognise " + langObj.native + " speech. Please type instead.",
+        "no-speech": "I didn't hear anything. Tap the mic and speak again.",
+        "audio-capture": "No microphone found.",
+        network: "Speech service unreachable. Check your internet connection.",
+      };
+      if (e.error !== "aborted") setMicError(map[e.error] || "Mic error: " + e.error);
+    };
     recRef.current = r;
 
     return () => {
@@ -86,7 +119,9 @@ export default function VoiceAssistant({ householdId, planId }) {
     try {
       TTS.cancel();
       const u = new SpeechSynthesisUtterance(text);
-      u.lang = langObj.voice;
+      const v = pickVoice();
+      if (v) u.voice = v;
+      u.lang = v ? v.lang : langObj.voice;
       TTS.speak(u);
     } catch {}
   }
@@ -97,6 +132,7 @@ export default function VoiceAssistant({ householdId, planId }) {
       TTS?.cancel();
       // Re-set lang just before start as a belt-and-suspenders measure.
       recRef.current.lang = langObj.voice;
+      setMicError("");
       setListening(true);
       recRef.current.start();
     } catch {
@@ -136,6 +172,8 @@ export default function VoiceAssistant({ householdId, planId }) {
       setThinking(false);
     }
   }
+
+  sendRef.current = send;
 
   return (
     <>
@@ -215,6 +253,13 @@ export default function VoiceAssistant({ householdId, planId }) {
           {!SR && (
             <div className="va-note">
               Voice input needs Chrome or Edge. You can type on any browser.
+            </div>
+          )}
+          {micError && <div className="va-note va-err">{micError}</div>}
+          {TTS && speak && !hasVoice && (
+            <div className="va-note">
+              No {langObj.native} voice is installed on this device, so replies will be text only.
+              Install the language voice in your system settings (Windows: Settings &gt; Time &amp; language &gt; Speech).
             </div>
           )}
           {SR && langObj.code !== "en" && (
