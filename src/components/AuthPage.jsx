@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { api, setToken } from "../api/client.js";
 import { LANGUAGES, useLang } from "../lib/i18n.jsx";
+import { LegalLinks } from "./LegalPage.jsx";
+import { legalHref } from "../legal/config.js";
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
 
@@ -139,6 +141,12 @@ export default function AuthPage({ onAuth }) {
           {busy ? <span className="spin" /> : mode === "signup" ? t("auth.signupBtn") : t("auth.loginBtn")}
         </button>
 
+        <p className="auth-consent">
+          By continuing you agree to our{" "}
+          <a href={legalHref("terms")} target="_blank" rel="noreferrer">Terms</a> and{" "}
+          <a href={legalHref("privacy")} target="_blank" rel="noreferrer">Privacy Policy</a>.
+        </p>
+
         <button
           className="auth-toggle"
           onClick={() => {
@@ -153,6 +161,7 @@ export default function AuthPage({ onAuth }) {
       <div className="foot" style={{ marginTop: 24 }}>
         <b>Deemona Rasoi</b> — powered by Claude
       </div>
+      <LegalLinks />
     </div>
   );
 }

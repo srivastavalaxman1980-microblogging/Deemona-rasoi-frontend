@@ -12,8 +12,14 @@ import RecipeView from "./components/RecipeView.jsx";
 import VoiceAssistant from "./components/VoiceAssistant.jsx";
 import AuthPage from "./components/AuthPage.jsx";
 import { useLang } from "./lib/i18n.jsx";
+import LegalPage, { LegalLinks } from "./components/LegalPage.jsx";
+import { getLegalSlug } from "./legal/config.js";
 
 export default function App() {
+  // Public legal pages (no login needed).
+  const legalSlug = getLegalSlug();
+  if (legalSlug) return <LegalPage slug={legalSlug} />;
+
   // Recipe pages open in a new tab as ?recipe=<mealId>.
   const recipeMealId =
     typeof window !== "undefined"
@@ -279,6 +285,7 @@ export default function App() {
       </div>
 
       <VoiceAssistant householdId={household?.id} planId={plan?.id} />
+      <div className="foot app-legal"><LegalLinks /></div>
     </div>
   );
 }
