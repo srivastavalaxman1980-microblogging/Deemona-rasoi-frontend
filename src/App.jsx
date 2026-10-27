@@ -14,8 +14,14 @@ import AuthPage from "./components/AuthPage.jsx";
 import { useLang } from "./lib/i18n.jsx";
 import LegalPage, { LegalLinks } from "./components/LegalPage.jsx";
 import { getLegalSlug } from "./legal/config.js";
+import { ResetPasswordPage, VerifyEmailPage } from "./components/AuthLinkPages.jsx";
 
 export default function App() {
+  // Links from emails: /?verify=<token> and /?reset=<token>.
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get("verify")) return <VerifyEmailPage token={urlParams.get("verify")} />;
+  if (urlParams.get("reset")) return <ResetPasswordPage token={urlParams.get("reset")} />;
+
   // Public legal pages (no login needed).
   const legalSlug = getLegalSlug();
   if (legalSlug) return <LegalPage slug={legalSlug} />;

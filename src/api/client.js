@@ -37,14 +37,17 @@ async function request(path, options = {}) {
 
   if (!res.ok) {
     let message = `Request failed (${res.status})`;
+    let code;
     try {
       const body = await res.json();
       if (body?.error) message = body.error;
+      code = body?.code;
     } catch {
       /* non-JSON error body */
     }
     const err = new Error(message);
     err.status = res.status;
+    err.code = code;
     throw err;
   }
 
@@ -63,6 +66,14 @@ export const api = {
   googleLogin: (idToken) =>
     request("/api/auth/google", { method: "POST", body: JSON.stringify({ idToken }) }),
   me: () => request("/api/auth/me"),
+  verifyEmail: (token) =>
+    request("/api/auth/verify-email", { method: "POST", body: JSON.stringify({ token }) }),
+  resendVerification: (email) =>
+    request("/api/auth/resend-verification", { method: "POST", body: JSON.stringify({ email }) }),
+  forgotPassword: (email) =>
+    request("/api/auth/forgot-password", { method: "POST", body: JSON.stringify({ email }) }),
+  resetPassword: (token, password) =>
+    request("/api/auth/reset-password", { method: "POST", body: JSON.stringify({ token, password }) }),
 
   // ---- households ----
   listHouseholds: () => request("/api/households"),

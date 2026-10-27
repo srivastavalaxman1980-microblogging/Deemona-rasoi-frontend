@@ -12,24 +12,64 @@ export default function AuthPage({ onAuth }) {
   const [form, setForm] = useState({ name: "", email: "", password: "" });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState(""); // success / info message
+  const [needsVerify, setNeedsVerify] = useState(false); // show "resend" link
   const googleBtnRef = useRef(null);
 
   const set = (k, v) => setForm((p) => ({ ...p, [k]: v }));
 
   async function finish(promise) {
     setError("");
+    setNotice("");
+    setNeedsVerify(false);
     setBusy(true);
     try {
       const result = await promise;
+      if (result.needsVerification) {
+        setNotice(`We sent a verification link to ${result.email}. Open it to activate your account, then sign in.`);
+        setNeedsVerify(true);
+        setMode("login");
+        setBusy(false);
+        return;
+      }
       setToken(result.token);
       onAuth(result.user);
     } catch (e) {
       setError(e.message || "Something went wrong. Please try again.");
+      if (e.code === "EMAIL_NOT_VERIFIED") setNeedsVerify(true);
       setBusy(false);
     }
   }
 
+  async function sendSimple(fn, okMsg) {
+    if (!form.email.trim()) {
+      setError("Enter your email first.");
+      return;
+    }
+    setError("");
+    setBusy(true);
+    try {
+      await fn(form.email.trim());
+      setNotice(okMsg);
+    } catch (e) {
+      setError(e.message);
+    }
+    setBusy(false);
+  }
+
+  const forgot = () =>
+    sendSimple(
+      api.forgotPassword,
+      "If an account exists for that email, we've sent a password reset link. It is valid for 1 hour."
+    );
+  const resend = () =>
+    sendSimple(
+      api.resendVerification,
+      "If that account still needs verifying, we've sent a new link."
+    );
+
   async function submit() {
+    if (mode === "forgot") return forgot();
     if (!form.email.trim() || !form.password || (mode === "signup" && !form.name.trim())) {
       setError("Please fill in all fields.");
       return;
@@ -103,10 +143,14 @@ export default function AuthPage({ onAuth }) {
         </div>
 
         <h2 className="disp auth-title">
-          {mode === "signup" ? t("auth.signupTitle") : t("auth.loginTitle")}
+          {mode === "signup" ? t("auth.signupTitle") : mode === "forgot" ? "Reset your password" : t("auth.loginTitle")}
         </h2>
 
-        {GOOGLE_CLIENT_ID && (
+        {mode === "forgot" && (
+          <p className="auth-hint">Enter your account email and we'll send you a link to set a new password.</p>
+        )}
+
+        {GOOGLE_CLIENT_ID && mode !== "forgot" && (
           <>
             <div className="google-wrap" ref={googleBtnRef} />
             <div className="auth-or"><span>or</span></div>
@@ -124,11 +168,16 @@ export default function AuthPage({ onAuth }) {
             <label>{t("auth.email")}</label>
             <input type="email" value={form.email} onChange={(e) => set("email", e.target.value)} onKeyDown={onKeyDown} autoComplete="email" />
           </div>
+          {mode !== "forgot" && (
           <div className="field">
             <label>{t("auth.password")}</label>
             <input type="password" value={form.password} onChange={(e) => set("password", e.target.value)} onKeyDown={onKeyDown} autoComplete={mode === "signup" ? "new-password" : "current-password"} />
+            {mode === "signup" && <div className="auth-hint">At least 8 characters, with a letter and a number.</div>}
           </div>
+          )}
         </div>
+
+        {notice && <div className="auth-notice">{notice}</div>}
 
         {error && (
           <div className="err" style={{ marginTop: 14 }}>
@@ -138,8 +187,19 @@ export default function AuthPage({ onAuth }) {
         )}
 
         <button className="btn btn-primary auth-submit" onClick={submit} disabled={busy}>
-          {busy ? <span className="spin" /> : mode === "signup" ? t("auth.signupBtn") : t("auth.loginBtn")}
+          {busy ? <span className="spin" /> : mode === "signup" ? t("auth.signupBtn") : mode === "forgot" ? "Send reset link" : t("auth.loginBtn")}
         </button>
+
+        {mode === "login" && (
+          <button className="auth-toggle" onClick={() => { setError(""); setNotice(""); setMode("forgot"); }}>
+            Forgot password?
+          </button>
+        )}
+        {needsVerify && mode === "login" && (
+          <button className="auth-toggle" onClick={resend} disabled={busy}>
+            Resend verification email
+          </button>
+        )}
 
         <p className="auth-consent">
           By continuing you agree to our{" "}
@@ -151,10 +211,12 @@ export default function AuthPage({ onAuth }) {
           className="auth-toggle"
           onClick={() => {
             setError("");
-            setMode(mode === "signup" ? "login" : "signup");
+            setNotice("");
+            setNeedsVerify(false);
+            setMode(mode === "login" ? "signup" : "login");
           }}
         >
-          {mode === "signup" ? t("auth.toLogin") : t("auth.toSignup")}
+          {mode === "login" ? t("auth.toSignup") : t("auth.toLogin")}
         </button>
       </div>
 

@@ -1372,3 +1372,7 @@ img.dishimg {
 .auth-consent { font-size: 12.5px; color: var(--muted); margin-top: 12px; text-align: center; }
 .auth-consent a { color: var(--green); }
 .app-legal { margin-top: 28px; padding-bottom: 20px; }
+
+.auth-hint { font-size: 12.5px; color: var(--muted); margin: 6px 0 0; }
+.auth-notice { margin-top: 14px; padding: 10px 12px; border-radius: 10px; background: #e6f1ea; color: var(--green-deep); font-size: 13.5px; }
+.auth-toggle:disabled { opacity: .5; cursor: default; }
